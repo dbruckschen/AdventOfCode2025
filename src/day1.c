@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <math.h>
 
 #define INPUT_FILE_LEN 4531
-#define MAX_LINE_LEN 8
+//#define INPUT_FILE_LEN 10
+#define MAX_LINE_LEN 32
 
 enum Direction {
 	LEFT,
@@ -39,18 +41,48 @@ static bool read_rotations_from_file(struct Rotation *r, FILE *fp) {
 
 static int rotate(int dial, struct Rotation rotation) {
 	int result = 0;
-	if (rotation.dir == LEFT) {
+	switch (rotation.dir) {
+	case LEFT:
 		result = dial - rotation.amount;
-		if (result < 0) { return result % 100; };
-	} else {
+		if (result < 0) { result %= 100; };
+		break;
+	case RIGHT:
 		result = dial + rotation.amount;
-		if (result >= 100) { return result % 100; };
+		if (result > 99) { result %= 100; }
 	}
+	
+	if (result < 0) { result += 100; }
+	if (result > 99) { result -= 100; }
+	
 	return result;
+}
+
+static int day2_count_zeros(int dial, struct Rotation rotation) {
+	int zero_count = 0;
+
+	for (int k = 0; k < rotation.amount; k++) {
+		switch (rotation.dir) {
+		case LEFT:
+			dial--;
+			if (dial == 0) { zero_count++; }
+			if (dial < 0) { dial = 99; }
+			break;
+		case RIGHT: 
+			dial++;
+			if (dial == 100) dial = 0;
+			if (dial == 0) { zero_count++; }
+			break;
+		}
+	}
+
+	if (dial == 0) { zero_count--; }
+
+	return zero_count;
 }
 
 int main(int argc, char **argv) {
 	FILE *fp = fopen("day1_input.txt", "r");
+	//FILE *fp = fopen("day1_test_input.txt", "r");
 
 	if (!fp) {
 		printf("Couldn't read file.\n");
@@ -65,16 +97,17 @@ int main(int argc, char **argv) {
 	}
 
 	int dial = 50;
-	int zero_cnt = 0;
+	int zero_counter = 0;
+	int zero_counter_day2 = 0;
 	
 	for (int i = 0; i < INPUT_FILE_LEN; i++) {
+		zero_counter_day2 += day2_count_zeros(dial, rotations[i]);
+		
 		dial = rotate(dial, rotations[i]);
-
-		printf("%d: %d\n", i, dial);
-		if (dial == 0) { zero_cnt++; };
+		if (dial == 0) { zero_counter++; };
 	}
 
-	printf("Answer: The dial points to zero %d times.\n", zero_cnt);
+	printf("Answer: The dial points to zero %d times. For day2: %d\n", zero_counter, zero_counter + zero_counter_day2);
 
 	fclose(fp);
 	
